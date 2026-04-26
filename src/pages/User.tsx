@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 import { MdEdit, MdCheck, MdCameraAlt, MdCloudUpload, MdLogout } from "react-icons/md";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery,} from "@tanstack/react-query";
 import AxiosURL from "../axios/axios";
+import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 
 const User = () => {
-  const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [editField, setEditField] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -24,42 +26,34 @@ const User = () => {
   });
 
   // --- FETCH DATA LOGIC ---
-  const fetchAllUserData = async () => {
-    const token = JSON.parse(localStorage.getItem("token") || "null");
-    const headers = { Authorization: `Bearer ${token}` };
+const fetchAllUserData = async () => {
+  try {
+    const headers = {
+      Authorization: `Bearer ${localStorage.getItem("token")}`
+    };    
 
-    // Fetching from both profile and education endpoints
-    const [profileRes, eduRes] = await Promise.all([
-      AxiosURL.get("/api/user/profile", { headers }),
-      AxiosURL.get("/api/user/education", { headers })
-    ]);
+    const profileRes = await AxiosURL.get(import.meta.env.VITE_User_Profile_GET_URL, { headers });
+    const eduRes = await AxiosURL.get(import.meta.env.VITE_User_Education_GET_URL, { headers });
 
-    const profileData = profileRes.data?.data?.[0];
-    const eduData = eduRes.data?.data?.[0];
+    const profileData = profileRes.data?.data?.[0] || {};
+    const eduData = eduRes.data?.data?.[0] || {};
 
-    return { ...profileData, ...eduData };
-  };
+    return { ...profileData, ...eduData }; 
+
+  } catch (err) {
+    console.error("API ERROR:", err);
+    throw err;
+  }
+};
 
   const { data: user, isLoading } = useQuery({
     queryKey: ["user"],
     queryFn: fetchAllUserData,
-    onSuccess: (data) => {
-      if (data) {
-        setFormData({
-          graduationClg: data.graduationClg || "",
-          graduationPerc: data.graduationPerc || "",
-          school: data.intermediateSchool || "",
-          interPercent: data.intermediatePerc || "",
-          postGradClg: data.postGradClg || "",
-          postGradPerc: data.postGradPerc || ""
-        });
-        if (data.profilePhoto) setProfileImgPreview(data.profilePhoto);
-      }
-    }
   });
 
+
   // --- HANDLERS ---
-  const handleImageChange = (e) => {
+  const handleImageChange = (e:any) => {
     const file = e.target.files[0];
     if (file) {
       setProfileFile(file);
@@ -69,7 +63,7 @@ const User = () => {
 
   const handleSaveProfile = async () => {
     setIsSaving(true);
-    const token = JSON.parse(localStorage.getItem("token") || "null");
+    const token = localStorage.getItem("token");    
     const headers = { Authorization: `Bearer ${token}` };
 
     try {
@@ -80,7 +74,7 @@ const User = () => {
         const fileData = new FormData();
         if (profileFile) fileData.append("profilePhoto", profileFile);
         if (resumeFile) fileData.append("resume", resumeFile);
-        requests.push(AxiosURL.patch("/api/user/profile", fileData, { 
+        requests.push(AxiosURL.patch(import.meta.env.VITE_User_Profile_URL, fileData, { 
           headers: { ...headers, "Content-Type": "multipart/form-data" } 
         }));
       }
@@ -94,27 +88,53 @@ const User = () => {
         intermediateSchool: formData.school,
         intermediatePerc: formData.interPercent
       };
-      requests.push(AxiosURL.post("/api/user/education", eduBody, { headers }));
+      requests.push(AxiosURL.post(import.meta.env.VITE_User_Education_URL, eduBody, { headers }));
 
       await Promise.all(requests);
-      alert("Profile & Education synced successfully!");
-      queryClient.invalidateQueries(["user"]);
-    } catch (err) {
-      alert(err.response?.data?.message || "Update failed");
+      toast.success("Profile & Education synced successfully!");
+       fetchAllUserData();
+    } catch (err:any) {
+      toast.error(err.response?.data?.message || "Update failed");
     } finally {
       setIsSaving(false);
       setEditField(null);
     }
   };
 
+  useEffect(() => {
+  if (user) {
+    setFormData({
+      graduationClg: user.graduationClg || "",
+      graduationPerc: user.graduationPerc || "",
+      school: user.intermediateSchool || "",
+      interPercent: user.intermediatePerc || "",
+      postGradClg: user.postGradClg || "",
+      postGradPerc: user.postGradPerc || ""
+    });
+
+    if (user.profilePhoto) {
+      setProfileImgPreview(user.profilePhoto);
+      localStorage.setItem("profilePhoto",user.profilePhoto)
+    } 
+    if (user.resumeLink) {
+      localStorage.setItem("resumeLink",user.resumeLink)
+    }
+  }
+}, [user]);
+
   const handleLogout = () => {
     localStorage.removeItem("token");
-    window.location.href = "/login"; // Ya jo bhi tumhara login route hai
+    localStorage.removeItem("profilePhoto")
+    localStorage.removeItem("resumeLink")
+     navigate("/login"); 
   };
+  
+  
+
 
   const InputGroup = ({ label, value, field }) => (
     <div className="flex flex-col gap-1 w-full">
-      <label className="text-[10px] text-gray-500 uppercase font-bold tracking-[2px]">{label}</label>
+      <label className="text-[10px] text-gray-400 uppercase font-bold tracking-[2px]">{label}</label>
       <div className={`flex items-center border-b-2 transition-all pb-1 ${editField === field ? "border-[#D91099]" : "border-white/10"}`}>
         <input
           type="text"
@@ -124,7 +144,7 @@ const User = () => {
           className="bg-transparent w-full outline-none text-sm md:text-base text-white disabled:text-gray-400"
         />
         <button onClick={() => setEditField(editField === field ? null : field)} className="ml-2">
-          {editField === field ? <MdCheck className="text-green-500" size={20}/> : <MdEdit className="text-gray-600 hover:text-white" size={18}/>}
+          {editField === field ? <MdCheck className="text-green-500" size={20}/> : <MdEdit className="text-[#D91099] hover:text-white" size={18}/>}
         </button>
       </div>
     </div>
@@ -133,18 +153,29 @@ const User = () => {
   if (isLoading) return <div className="h-screen flex items-center justify-center bg-[#0a0a0a] text-[#D91099] font-black tracking-[10px] animate-pulse">LOADING...</div>;
 
   return (
-    <main className="min-h-screen bg-[#050505] bg-[url('/bg2.png')] bg-cover bg-fixed text-white p-4 md:p-10 flex justify-center items-start">
+    <main className="min-h-screen  bg-[url('/bg2.png')] bg-cover bg-center text-white p-4 md:p-10 flex justify-center items-start">
       <section className="w-full max-w-4xl bg-black/80 backdrop-blur-3xl border border-white/5 rounded-[2rem] overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)]">
         
         {/* Top Banner */}
-        <div className="h-32 md:h-44 bg-gradient-to-r from-[#D91099]/40 via-[#4c10d9]/20 to-transparent relative">
-          <button 
+        <div className="h-32 md:h-44 relative
+    bg-cover 
+    bg-center 
+    bg-no-repeat 
+    blur-md 
+    inset-0
+    scale-100
+    [mask-image:linear-gradient(to_bottom,black_20%,rgba(0,0,0,0.5)_50%,transparent_90%)]
+    [-webkit-mask-image:linear-gradient(to_bottom,black_20%,rgba(0,0,0,0.5)_50%,transparent_90%)]
+        "
+        style={{backgroundImage:`url(${profileImgPreview})`}}
+        >
+        </div>
+         <button 
             onClick={handleLogout}
-            className="absolute top-4 right-4 bg-red-600/20 hover:bg-red-600 p-3 rounded-full transition-all group"
+            className="absolute top-4 cursor-pointer right-4 z-50 bg-red-600/20 hover:bg-red-600 p-3 rounded-full transition-all group"
           >
             <MdLogout size={20} className="group-hover:scale-110 transition-transform" />
           </button>
-        </div>
 
         <div className="px-6 md:px-12 pb-12">
           {/* Avatar & Info */}
@@ -184,13 +215,15 @@ const User = () => {
                 <MdCloudUpload size={24} />
               </div>
               <div>
-                <h4 className="text-sm font-bold uppercase tracking-widest">Resume Attachment</h4>
-                <p className="text-xs text-gray-500">{resumeFile ? resumeFile.name : (user?.resumeLink ? "CV_Final_Updated.pdf" : "No file found")}</p>
+                <h4 className={`text-sm font-bold uppercase tracking-widest ${user?.resumeLink ? `text-[#ddd]` :`text-red-500`}`}>
+                  {user?.resumeLink ? "Resume uploaded" : "Please upload your resume"}  
+                </h4>
+             <a href={user?.resumeLink} target="_blank"> <p className="text-xs text-[#D91099]">{resumeFile ? resumeFile.name : (user?.resumeLink ? "view resume" : "No file found")}</p></a>
               </div>
             </div>
-            <label className="bg-white text-black text-xs font-black px-4 py-2 rounded-lg cursor-pointer hover:bg-[#D91099] hover:text-white transition-all">
-              UPLOAD
-              <input type="file" hidden onChange={(e) => setResumeFile(e.target.files[0])} accept=".pdf" />
+            <label className="bg-[#ddd] text-black cursor-pointer  text-xs font-black px-4 py-2 rounded-tl-xl rounded-br-xl cursor-pointer hover:bg-[#D91099]  hover:text-white transition-all">
+             {user?.resumeLink?"New":"UPLOAD"} 
+              <input type="file" required hidden onChange={(e) => setResumeFile(e.target.files[0])} accept=".pdf" />
             </label>
           </div>
 
@@ -198,12 +231,13 @@ const User = () => {
           <div className="flex flex-col md:flex-row gap-4 mt-12">
             <button 
               onClick={handleSaveProfile}
+              type="submit"
               disabled={isSaving}
-              className="flex-[2] bg-[#D91099] hover:bg-white hover:text-black text-white py-5 rounded-2xl font-black uppercase tracking-[4px] transition-all transform active:scale-95 disabled:opacity-50"
+              className="flex-[2] bg-[#D91099] cursor-pointer hover:bg-white hover:text-black text-white py-5 rounded-tl-2xl rounded-br-2xl font-black uppercase tracking-[4px] transition-all transform active:scale-95 disabled:opacity-50"
             >
               {isSaving ? "Syncing Data..." : "Update Profile"}
             </button>
-            <button className="flex-1 bg-white/5 border border-white/20 py-5 rounded-2xl font-bold uppercase tracking-widest hover:bg-white/10 transition-all">
+           <button onClick={()=>{navigate("/home/Jobapplay")}} className="flex-1 cursor-pointer bg-white/5 border border-white/20 py-5 rounded-2xl font-bold uppercase tracking-widest hover:bg-white/10 transition-all">
               History
             </button>
           </div>

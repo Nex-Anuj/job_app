@@ -5,9 +5,11 @@ import * as THREE from "three"
 import gsap from "gsap"
 import { useGSAP } from "@gsap/react"
 import { ScrollTrigger } from "gsap/all";
+import { useAuth } from "../Context/contextAPI";
  
 const Scene = () => {
-const{scene,animations} = useGLTF("./fish.glb")
+const{scene,animations} = useGLTF("/fish.glb")
+const{colorFont} = useAuth()
 const [screenWidth, setScreenWidth] = useState(window.innerWidth);
 const {actions,names} = useAnimations(animations,scene)  
 const{camera,gl} = useThree();
@@ -26,12 +28,12 @@ const[baseColor,emsissiveColor] = (useTexture([
 
 const jallyfish_material = new THREE.MeshPhysicalMaterial({
 map:baseColor,
-metalness:3,
-roughness:.3,
+metalness:2,
+roughness:7,
 transparent:true,
 opacity:.8,
-emissiveIntensity:5,
-emissive: new THREE.Color("#D91099"),
+emissiveIntensity:2,
+emissive: new THREE.Color(colorFont.color),
 emissiveMap:emsissiveColor,
 clearcoat:0,
 clearcoatRoughness:0,
@@ -70,7 +72,7 @@ scrollTrigger:{
  endTrigger:"#section3",
  start:"top top",
  end:"bottom",
- markers:true,
+//  markers:true,
  scrub:true 
 }
 })

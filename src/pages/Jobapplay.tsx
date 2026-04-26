@@ -1,24 +1,32 @@
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import AxiosURL from "../axios/axios";
 
 const Jobapplay = () => {
- const getData = localStorage.getItem("apply")
-const[apply,setapplay] = useState<any[]>([]);
+const getApplayJobs = async() =>{
+try{
+const headers = {
+ Authorization: `Bearer ${localStorage.getItem("token")}` 
+};
 
-const handleRemove = (name:string) =>{
-const data =  JSON.parse(localStorage.getItem("apply") || "[]");
-const updated = data.filter((item) => item.companyName !== name);
-localStorage.setItem("apply",JSON.stringify(updated))
-setapplay(updated);
+const response = await AxiosURL.get(import.meta.env.VITE_User_Application_GET_URL,{headers});
+return response.data.data
 
+}catch(err){
+console.error("API ERROR:",err);
+throw err;  
+}
 }
 
 
- useEffect(()=>{
-if(getData === null) return;
-const parsed  = JSON.parse(getData);
-setapplay(parsed );
+const{data:apply,isLoading,error} = useQuery({
+queryKey:[`user`],
+queryFn:getApplayJobs  
+})
 
- },[getData])
+console.log(apply);
+
+
+ if (isLoading) return <div className="h-screen flex items-center justify-center bg-[#0a0a0a] text-[#D91099] font-black tracking-[10px] animate-pulse">LOADING...</div>;
 
 
   return (
@@ -26,12 +34,14 @@ setapplay(parsed );
 
       <div className="max-w-5xl mx-auto space-y-4">
 
-        {apply.length === 0 ? (
+        {apply?.length === 0 ? (
           <p className="text-center text-gray-400 mt-10">
             No applications yet 
           </p>
         ) : (
-          apply.map((job, index) => (
+         Array.isArray(apply) &&
+          apply?.map((job, index) => {
+            return(
             <div
               key={index}
               className="flex flex-col sm:flex-row items-center justify-between gap-4 
@@ -42,7 +52,7 @@ setapplay(parsed );
               <div className="flex items-center gap-4 w-full sm:w-auto">
 
                 <img
-                  src={job.companyLogo}
+                  src={job.companyImage}
                   alt="logo"
                   className="h-12 w-12 object-contain rounded"
                 />
@@ -63,18 +73,15 @@ setapplay(parsed );
 
               {/* Right Side Buttons */}
               <div className="flex gap-3">
-
-                <button onClick={() =>handleRemove(job.companyName)} className="px-4 py-1 rounded-tr-[10px] rounded-bl-[10px]  bg-red-500 hover:bg-red-600 transition">
-                  Cancel
-                </button>
-
-                <button  className="px-4 py-1 rounded-tl-[10px] rounded-br-[10px] border-2 border-[#D91099]/75 text-white cursor-default">
-                  Pending
+                <button  
+                style={{backgroundColor:job.status === "pending" ? "green" : job.status === "selected"? "blue":"red"}}
+                className="px-4 py-1 rounded-tl-[10px] rounded-br-[10px]  cursor-default">
+                  {job.status}
                 </button>
 
               </div>
             </div>
-          ))
+          )})
         )}
 
       </div>

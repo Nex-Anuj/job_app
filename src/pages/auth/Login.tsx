@@ -1,61 +1,80 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import AxiosURL from "../../axios/axios";
-import { useNavigate } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 
 const Login = () => {
 const navigate = useNavigate()  
 const[user,setuser] = useState({
 email: "",
-password: ""  
+password: "",  
+role:""
 })
 
 const handleSubmit = async(e:any) =>{
 e.preventDefault();
+const {role,...userWithoutRole} = user
+
 
  try {
-    const res = await AxiosURL.post("/api/user/login", user);
-    if (res.data?.success) {
-      const userData = res.data.data?.[0];
-      if (userData?.token) {
-        localStorage.setItem("token", userData.token);
-      }
-      console.log("User Created:", userData);
-
-      // optional: redirect / reset form
-      navigate("/home")
-    }
-
-  } catch (error: any) {
-    if (error.response) {
-      const { status, data } = error.response;
-
-      if (status === 400) {
-        console.log("Validation Errors:", data.details);
-      }
-      else if (status === 404) {
-        console.log("User not found with this email:", data.message);
-      }else if (status === 401) {
-        console.log("Invalid password", data.message); 
-      }
-      else {
-        console.log("Server Error:", data.message);
-      }
-    } else {
-      console.log("Network Error:", error.message);
-    }
+   let res;
+  if (user.role === "user") {
+     res = await AxiosURL.post(import.meta.env.VITE_LOGIN_URL, user); 
+  }else{
+ res = await AxiosURL.post(import.meta.env.VITE_LOGIN_Recruiter_URL, user); 
   }
 
+    if (res.data?.success) {
+      const userData = res.data.data.token;
+      const role = res.data.data.role
+      if (userData) {
+        localStorage.setItem("token", userData);
+        localStorage.setItem("role", role);
+      }
+    navigate("/home/user")
+    window.location.reload()
+    }
+
+
+  } catch (error: any) {
+   if (error.response) {
+        const { status, data } = error.response;
+  
+        if (status === 401) {
+          toast.error("Validation Errors:", data.errors);
+          toast.error("password not match")
+        }
+        else if (status === 409) {
+          toast.error("User already exists:", data.message);
+        }
+        else {
+          toast.error( data.errors);
+        }
+      } else {
+        toast.error("Network Error:", error.message);
+      }
+  }
 }
+const token = localStorage.getItem("token")
+const role = localStorage.getItem("role")
+useEffect(()=>{
+if (token !== null && role === "user") {
+  navigate("/home")
+}else if (token !== null && role === "admin") {
+navigate("/admin")
+}else{
+navigate("/login")
+}},[token,role])
 
   return (
-       <main className="min-h-screen bg-[url('/bg2.png')] bg-cover bg-center flex items-center justify-center p-4">
+       <main className="min-h-screen bg-black flex items-center justify-center p-4 text-white">
 
       {/* Glass Card */}
       <section className="w-full max-w-md bg-white/10 backdrop-blur-lg border border-white/20 
                           rounded-2xl p-6 sm:p-8 shadow-xl">
 
         <h1 className="text-2xl sm:text-3xl font-bold text-center mb-6">
-          Create Account
+          Login Account
         </h1>
 
         <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
@@ -74,19 +93,33 @@ e.preventDefault();
           {/* Password */}
           <input
             type="password"
-               value={user.password}
+            value={user.password}
             onChange={(e)=>setuser((prev)=>({...prev,password:e.target.value}))}
             required
             placeholder="Password"
             className="px-4 py-2 rounded-lg bg-white/10 border border-white/20 
-                       focus:outline-none focus:border-cyan-400 placeholder-gray-300"
+           focus:outline-none focus:border-cyan-400 placeholder-gray-300"
           />
+          
+          
+          <select
+                name="role"
+            value={user.role}
+            required
+            className="px-4 py-2 rounded-lg bg-[#1e1d28]  border border-white/20 
+           focus:outline-none focus:border-cyan-400 text-gray-300"
+          onChange={(e)=>setuser((prev)=>({...prev,role:e.target.value}))}
+          >
+            <option value="">Select Role</option>
+            <option value="user">User</option>
+            <option value="admin">admin</option>
+          </select>
 
           {/* Button */}
           <button
             type="submit"
-            className="mt-2 py-2 rounded-lg bg-cyan-500 hover:bg-cyan-600 
-                       transition font-semibold"
+            className="mt-2 py-2 rounded-tl-xl rounded-br-xl bg-cyan-500 hover:bg-cyan-600 
+                       transition font-semibold text-black"
           >
             Register
           </button>
@@ -95,8 +128,8 @@ e.preventDefault();
 
         {/* Footer */}
         <p className="text-sm text-gray-300 text-center mt-4">
-          Already have an account?{" "}
-          <span className="text-cyan-400 cursor-pointer">Login</span>
+          Create your account?{" "}
+       <NavLink to={'/'}> <span className="text-cyan-400 cursor-pointer">Sign up</span> </NavLink>
         </p>
 
       </section>

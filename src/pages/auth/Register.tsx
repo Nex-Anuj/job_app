@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import AxiosURL from "./../../axios/axios"
-import { useNavigate } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 
 const Register = () => {
 const navigate = useNavigate()
@@ -9,7 +10,8 @@ const[user,setuser] = useState({
    lastName: "",
    email: "",
    password: "",
-   role: ""
+   role: "",
+   organizationName:""
 })  
 
 
@@ -20,42 +22,64 @@ setuser((prev)=>({...prev,[name]:value}))
 
 const handleSubmit = async (e: any) => {
   e.preventDefault();
-
+ let res:any;
   try {
-    const res = await AxiosURL.post("/api/user/sign-up", user);
+    if (user.role === "user") {
+      res = await AxiosURL.post(import.meta.env.VITE_RAGISTER_URL, user); 
+    }else{
+     res = await AxiosURL.post(import.meta.env.VITE_Recruiter_URL, user);
+    }
+    
     if (res.data?.success) {
       const userData = res.data.data?.[0];
-      if (userData?.token) {
+      if (userData) {
         localStorage.setItem("token", userData.token);
+        localStorage.setItem("role", userData.role);
       }
-
       console.log("User Created:", userData);
-
       // optional: redirect / reset form
-      navigate("/home")
+  if (userData.role === "user") {
+    navigate("/home/user")
+    window.location.reload()
+  }else{
+    navigate("/admin")
+    window.location.reload()
+  }
+  toast.success("account create successfully")
     }
+
 
   } catch (error: any) {
     if (error.response) {
       const { status, data } = error.response;
 
       if (status === 400) {
-        console.log("Validation Errors:", data.details);
+        toast.error("Validation Errors:", data.errors);
+        toast.error(data.errors.password)
       }
       else if (status === 409) {
-        console.log("User already exists:", data.message);
+        toast.error("User already exists:", data.message);
       }
       else {
-        console.log("Server Error:", data.message);
+        toast.error("Server Error:", data.message);
       }
     } else {
-      console.log("Network Error:", error.message);
+      toast.error("Network Error:", error.message);
     }
   }
 };
 
+const token = localStorage.getItem("token")
+const role = localStorage.getItem("role")
+useEffect(()=>{
+if (token !== null && role === "user") {
+  navigate("/home")
+}else if (token !== null && role === "admin") {
+navigate("/admin")
+}},[token,role])
+
   return (
-    <main className="min-h-screen bg-[url('/bg2.png')] bg-cover bg-center flex items-center justify-center p-4">
+    <main className="min-h-screen bg-black flex items-center justify-center p-4">
       {/* Glass Card */}
       <section className="w-full max-w-md bg-white/10 backdrop-blur-lg border border-white/20 
                           rounded-2xl p-6 sm:p-8 shadow-xl">
@@ -64,7 +88,7 @@ const handleSubmit = async (e: any) => {
           Create Account
         </h1>
 
-        <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
+        <form className="flex flex-col gap-4 text-white" onSubmit={handleSubmit}>
 
           {/* First Name */}
           <input
@@ -119,19 +143,32 @@ const handleSubmit = async (e: any) => {
                 name="role"
             value={user.role}
             required
-            className="px-4 py-2 rounded-lg bg-white/10 border border-white/20 
+            className="px-4 py-2 rounded-lg bg-[#1e1d28] border border-white/20 
            focus:outline-none focus:border-cyan-400 text-gray-300"
           onChange={handleChange}
           >
             <option value="">Select Role</option>
             <option value="user">User</option>
-            <option value="admin">Admin</option>
+            <option value="admin">admin</option>
           </select>
+          {
+            user.role == "admin" &&
+            <input
+          onChange={handleChange}
+            type="text"
+             name="organizationName"
+            value={user.organizationName}
+            
+            placeholder="organization name"
+            className="px-4 py-2 rounded-lg bg-white/10 border border-white/20 
+                       focus:outline-none focus:border-cyan-400 placeholder-gray-300"
+          />
+          } 
 
           {/* Button */}
           <button
             type="submit"
-            className="mt-2 py-2 rounded-lg bg-cyan-500 hover:bg-cyan-600 
+            className="mt-2 py-2 rounded-tl-xl rounded-br-xl text-black bg-cyan-500 hover:bg-cyan-600 
                        transition font-semibold"
           >
             Register
@@ -142,7 +179,7 @@ const handleSubmit = async (e: any) => {
         {/* Footer */}
         <p className="text-sm text-gray-300 text-center mt-4">
           Already have an account?{" "}
-          <span className="text-cyan-400 cursor-pointer">Login</span>
+        <NavLink to={"/login"}><span className="text-cyan-400 cursor-pointer">Login</span></NavLink> 
         </p>
 
       </section>

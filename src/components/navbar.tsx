@@ -1,8 +1,64 @@
-import { Outlet } from "react-router-dom"
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom"
 import {motion} from "framer-motion"
 import "@fontsource/inter/700.css";
+import { useGSAP } from "@gsap/react";
+import gsap from "gsap";
+import { useEffect } from "react";
+import { useAuth } from "../Context/contextAPI";
 
 const Navbar = () => {
+const navigate = useNavigate()
+const {contextSafe} = useGSAP();
+const{pathname} = useLocation()
+const{Authoriza} =  useAuth()
+
+const hoverEffect = contextSafe((id:string)=>{
+ gsap.to(`${id} p` ,{
+  y:-7.5,
+  color:"#D91099",
+  stagger:.05,
+  fontSize:"1.5vw",
+  fontWeight:"bold",
+  ease:"back.in"
+ }) 
+})
+const hoverEnd = contextSafe((id:string)=>{
+ gsap.to(`${id} p` ,{
+  y:0,
+  color:"#D1D5DC",
+  fontSize:"1.3vw",
+  stagger:-.05,
+    ease:"back.out"
+ }) 
+})
+const profilePhoto = localStorage.getItem("profilePhoto") 
+const resumeLink = localStorage.getItem("resumeLink")
+const role = localStorage.getItem("role");
+const token = localStorage.getItem("token")
+
+useEffect(() => {
+  if (profilePhoto === null && resumeLink === null) {
+    navigate("/home/user");
+  }
+  if (role === null || token === null) {
+    navigate("/login")
+  }else if (role === "admin") {
+    navigate("/admin")
+  }
+}, [profilePhoto, resumeLink,role]);
+
+useEffect(()=>{
+if (!Authoriza) {
+console.log("hello");
+  
+navigate(-1)
+}
+},[Authoriza])
+
+useEffect(()=>{
+window.scrollTo(0,0)
+},[pathname])
+
 
 return (
 <main className="h-screen bg-black text-gray-300">
@@ -19,23 +75,37 @@ return (
       <ul className="h-full flex items-center justify-around 
                      uppercase cursor-pointer 
                      text-[3.5vw] sm:text-[2vw] md:text-[1.3vw] font-bold">
-        <motion.li
-        whileHover={{scale:1.2,color:"#D91099", fontWeight:"bold",transition:{duration:.2}}}
+
+      <NavLink to={"/home"}>  <motion.li
+        className="flex "
+      id="home" 
+         onHoverStart={()=>hoverEffect("#home")}
+        onHoverEnd={()=>hoverEnd("#home")}
         >
-          <h1>Home</h1>
-        </motion.li>
-        <motion.li 
-         whileHover={{scale:1.2,color:"#D91099", fontWeight:"bold",transition:{duration:.2,ease:"easeInOut"}}}
-        >About</motion.li>
-        <motion.li 
-         whileHover={{scale:1.2,color:"#D91099", fontWeight:"bold",transition:{duration:.2,ease:"easeInOut"}}}
-        >Post</motion.li>
-        <motion.li 
-         whileHover={{scale:1.2,color:"#D91099", fontWeight:"bold",transition:{duration:.2,ease:"easeInOut"}}}
-        >User</motion.li>
-        <motion.li
-         whileHover={{scale:1.2,color:"#D91099", fontWeight:"bold",transition:{duration:.2,ease:"easeInOut"}}}
-        >Services</motion.li>
+          <p>H</p><p>o</p><p>m</p><p>e</p>
+        </motion.li> </NavLink> 
+
+     <NavLink to={"/home/Jobapplay"}><motion.li  
+        className="flex"
+            id="post" 
+         onHoverStart={()=>hoverEffect("#post")}
+        onHoverEnd={()=>hoverEnd("#post")}
+        ><p>a</p><p>p</p><p>l</p><p>a</p><p>y</p> <span> </span> <p> j</p><p>o</p><p>b</p><p>s</p>
+        </motion.li></NavLink>
+         
+    <NavLink to={"/home/user"}> <motion.li 
+        className="flex"
+         id="user" 
+         onHoverStart={()=>hoverEffect("#user")}
+        onHoverEnd={()=>hoverEnd("#user")}
+        ><p>u</p><p>s</p><p>e</p><p>r</p></motion.li> </NavLink>  
+
+         <NavLink to={"/home/search"}> <motion.li
+        className="flex"
+         id="search" 
+         onHoverStart={()=>hoverEffect("#search")}
+        onHoverEnd={()=>hoverEnd("#search")}
+        ><p>s</p><p>e</p><p>a</p><p>r</p><p>c</p><p>h</p></motion.li>  </NavLink> 
       </ul>
     </nav>
   </motion.section>

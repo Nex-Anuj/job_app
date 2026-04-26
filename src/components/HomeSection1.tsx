@@ -1,6 +1,11 @@
 import "@fontsource/inter/700.css";
+import { useState } from "react";
+import { useAuth } from "../Context/contextAPI";
 
 const HomeSection1 = () => {
+const{roleAU,colorFont} = useAuth()  
+
+
   return (
 <main className="relative z-10 grid justify-start items-center 
                  w-screen h-[100vh] overflow-hidden">
@@ -9,12 +14,15 @@ const HomeSection1 = () => {
               text-[0.8rem] sm:text-[0.9rem] md:text-[1rem] lg:text-[1.1rem] 
               leading-relaxed">
 
-  <span className="text-[#D91099] block sm:inline">
-    Top Companies //
-  </span>
+  <span className="text-[#D91099] block sm:inline" style={{color:colorFont.color}}>
+  {roleAU ?
+   " Top Companies //"  :
+" Create Job Opportunities,"}
 
-  <span className="block sm:inline text-gray-300 mt-1 sm:mt-0">
-    Google  Microsoft  Amazon  Meta  Netflix  Rockstar
+  </span> <span className="block sm:inline text-gray-300 mt-1 sm:mt-0">
+    {roleAU ?
+     "Google  Microsoft  Amazon  Meta  Netflix  Rockstar":
+    "Manage Applications, and Build Your Dream Team Faster Than Ever"}
   </span>
 
 </p>
@@ -23,18 +31,18 @@ const HomeSection1 = () => {
   
   <h1 className="uppercase font-extrabold 
                  text-[15vw] sm:text-[8] md:text-[6vw] lg:text-[9vw]
-                 leading-[0.9] tracking-tight text-[#D91099] italic">
-    Find Your
+                 leading-[0.9] tracking-tight text-[#D91099] italic" style={{color:colorFont.color}}>
+   {roleAU ? "Find Your":"Build Your"}
   </h1>
 
   <h1 className="uppercase font-extrabold 
                  text-[13vw] sm:text-[8vw] md:text-[6vw] lg:text-[9vw]
-                 leading-[0.9] tracking-tight ">
-    Dream Job
+                 leading-[0.9] tracking-tight " style={{fontSize:colorFont.fontSize}}>
+   {roleAU ? "Dream Job":"Team Faster"} 
     <span className="block sm:inline 
                      text-[4vw] sm:text-[3vw] md:text-[2vw]
-                     font-light italic text-[#D91099] ml-2 font[cursive]">
-      , faster
+                     font-light italic text-[#D91099] ml-2 font[cursive]" style={{color:colorFont.color}}>
+      {roleAU ? "faster,":"”"} 
     </span>
   </h1>
 
